@@ -40,7 +40,7 @@ namespace videocore
 {
     static const size_t kMaxSendbufferSize = 10 * 1024 * 1024; // 10 MB
     
-    RTMPSession::RTMPSession(std::string uri, RTMPSessionStateCallback callback)
+    RTMPSession::RTMPSession(std::string uri, std::string streamName, RTMPSessionStateCallback callback)
     : m_streamOutRemainder(65536),m_streamInBuffer(new RingBuffer(4096)), m_callback(callback), m_bandwidthCallback(nullptr), m_outChunkSize(128), m_inChunkSize(128), m_bufferSize(0), m_streamId(0),  m_createStreamInvoke(0), m_numberOfInvokes(0), m_state(kClientStateNone), m_ending(false),
     m_jobQueue("com.videocore.rtmp"), m_networkQueue("com.videocore.rtmp.network"), m_previousTs(0), m_clearing(false)
     {
@@ -48,7 +48,7 @@ namespace videocore
         m_streamSession.reset(new Apple::StreamSession());
         m_networkWaitSemaphore = dispatch_semaphore_create(0);
 #endif
-      
+        
         
         boost::char_separator<char> sep("/");
         boost::tokenizer<boost::char_separator<char>> uri_tokens(uri, sep);
@@ -65,15 +65,12 @@ namespace videocore
             if(tokenCount++ < 2) { // skip protocol and host/port
                 continue;
             }
-            if(tokenCount == 3) {
-                m_app = *it;
-            } else {
-                pp << *it << "/";
-            }
+            pp << *it;
         }
         
-        m_playPath = pp.str();
-        m_playPath.pop_back();
+        m_app = pp.str();
+        m_playPath = streamName;
+        
         DLog("playPath: %s, app: %s", m_playPath.c_str(), m_app.c_str());
         long port = (m_uri.port > 0) ? m_uri.port : 1935;
         
